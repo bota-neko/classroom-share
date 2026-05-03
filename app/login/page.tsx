@@ -30,9 +30,9 @@ export default function LoginPage() {
     <div className="flex items-center justify-center min-h-screen bg-white px-4">
       <div className="w-full max-w-sm">
         <div className="flex justify-center mb-8">
-          <div className="w-12 h-12 bg-black rounded-xl flex items-center justify-center text-white text-2xl" style={{ fontFamily: "var(--font-lobster)" }}>
-            C
-          </div>
+          <span className="text-4xl text-black" style={{ fontFamily: "var(--font-lobster)" }}>
+            Classroom-Share
+          </span>
         </div>
         <h1 className="text-2xl font-semibold text-center mb-1 text-black">
           ログイン

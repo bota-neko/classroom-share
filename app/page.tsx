@@ -39,10 +39,9 @@ export default function Home() {
       <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-black rounded-lg flex items-center justify-center text-white font-bold text-xl">
-              C
-            </div>
-            <span className="text-xl font-bold tracking-tight">ClassShare</span>
+            <span className="text-2xl sm:text-3xl text-black" style={{ fontFamily: "var(--font-lobster)" }}>
+              Classroom-Share
+            </span>
           </div>
           <div className="flex items-center gap-4">
             <Link href="/login" className="text-sm font-medium text-gray-600 hover:text-black transition-colors">
@@ -147,8 +146,8 @@ export default function Home() {
             />
             <StepItem 
               num="02"
-              title="ログイン"
-              description="GoogleやLINEアカウントで、わずか数秒で登録完了。"
+              title="アカウント作成"
+              description="メールアドレスだけで、わずか数秒で登録完了。"
             />
             <StepItem 
               num="03"
@@ -177,10 +176,9 @@ export default function Home() {
       <footer className="py-12 border-t border-gray-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-8 text-gray-500 text-sm font-medium">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 bg-black rounded flex items-center justify-center text-white font-bold text-xs">
-              C
-            </div>
-            <span className="font-bold text-black tracking-tight">ClassShare</span>
+            <span className="text-xl text-black" style={{ fontFamily: "var(--font-lobster)" }}>
+              Classroom-Share
+            </span>
           </div>
           <div className="flex gap-8">
             <Link href="#" className="hover:text-black transition-colors">利用規約</Link>
