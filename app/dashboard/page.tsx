@@ -221,10 +221,7 @@ export default function DashboardPage() {
       <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-black rounded-lg flex items-center justify-center text-white text-base" style={{ fontFamily: "var(--font-lobster)" }}>
-              C
-            </div>
-            <h1 className="text-base text-black" style={{ fontFamily: "var(--font-lobster)" }}>Classroom</h1>
+            <h1 className="text-3xl text-black" style={{ fontFamily: "var(--font-lobster)" }}>Classroom-Share</h1>
           </div>
           <div className="flex items-center gap-2">
             <button
