@@ -74,7 +74,10 @@ export default function Works({
         },
         async (payload) => {
           const newWork = payload.new as Work;
-          setWorks((prev) => [newWork, ...prev]);
+          setWorks((prev) => {
+            if (prev.some((w) => w.id === newWork.id)) return prev;
+            return [newWork, ...prev];
+          });
           // プロフィールがなければ取得
           setProfiles((prev) => {
             if (!prev.has(newWork.user_id)) {
@@ -177,7 +180,6 @@ export default function Works({
     if (fileInputRef.current) fileInputRef.current.value = "";
     setShowForm(false);
     setUploading(false);
-    await fetchWorks();
 
     // 通知を全員に送る
     const { data: members } = await supabase

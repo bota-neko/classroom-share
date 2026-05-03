@@ -71,7 +71,10 @@ export default function Files({
         },
         async (payload) => {
           const newFile = payload.new as SharedFile;
-          setFiles((prev) => [newFile, ...prev]);
+          setFiles((prev) => {
+            if (prev.some((f) => f.id === newFile.id)) return prev;
+            return [newFile, ...prev];
+          });
           // プロフィール取得
           fetchProfiles([newFile.user_id]).then((newProfiles) => {
             setProfiles((p) => {
@@ -142,7 +145,6 @@ export default function Files({
     if (fileInputRef.current) fileInputRef.current.value = "";
     setShowForm(false);
     setUploading(false);
-    await fetchFiles();
 
     // 通知を全員に送る
     const { data: members } = await supabase
