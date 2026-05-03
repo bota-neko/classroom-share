@@ -42,6 +42,7 @@ export default function Chat({
   const [profiles, setProfiles] = useState<Map<string, string>>(new Map());
   const [members, setMembers] = useState<Member[]>([]);
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
+  const [showSidebarMobile, setShowSidebarMobile] = useState(false);
   const [likes, setLikes] = useState<Map<string, LikeState>>(new Map());
   const [loading, setLoading] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -301,21 +302,33 @@ export default function Chat({
   return (
     <div className="h-full">
       <div className="max-w-6xl mx-auto h-full flex bg-white border-gray-200 overflow-hidden relative">
-        {/* サイドバー */}
-        <div className="w-64 border-r border-gray-100 flex flex-col bg-gray-50/30 hidden sm:flex shrink-0">
+        {/* サイドバー (デスクトップ: 固定, スマホ: オーバーレイ) */}
+        <div className={`
+          ${showSidebarMobile ? "translate-x-0" : "-translate-x-full sm:translate-x-0"}
+          fixed sm:relative inset-y-0 left-0 w-64 border-r border-gray-100 flex flex-col bg-white sm:bg-gray-50/30 z-50 transition-transform duration-300 ease-in-out shrink-0
+        `}>
           <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-white/50">
             <span className="text-sm font-bold text-black">メンバー</span>
-            <span className="text-[10px] text-gray-400 font-medium bg-gray-100 px-1.5 py-0.5 rounded uppercase">
+            <button 
+              onClick={() => setShowSidebarMobile(false)}
+              className="sm:hidden p-1 text-gray-400 hover:text-black"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+              </svg>
+            </button>
+            <span className="hidden sm:inline text-[10px] text-gray-400 font-medium bg-gray-100 px-1.5 py-0.5 rounded uppercase">
               Class
             </span>
           </div>
           <div className="flex-1 overflow-y-auto">
             <button
-              onClick={() => setSelectedMemberId(null)}
-              className={`w-full flex items-center gap-3 px-4 py-3 text-sm transition-colors border-b border-gray-50 ${selectedMemberId === null
+              onClick={() => { setSelectedMemberId(null); setShowSidebarMobile(false); }}
+              className={`w-full flex items-center gap-3 px-4 py-3 text-sm transition-colors border-b border-gray-50 ${
+                selectedMemberId === null
                   ? "bg-black text-white"
                   : "text-gray-600 hover:bg-gray-100"
-                }`}
+              }`}
             >
               <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs ${selectedMemberId === null ? "bg-white/20" : "bg-gray-200"}`}>
                 👥
@@ -328,11 +341,12 @@ export default function Chat({
             {members.map((m) => (
               <button
                 key={m.user_id}
-                onClick={() => setSelectedMemberId(m.user_id)}
-                className={`w-full flex items-center gap-3 px-4 py-3 text-sm transition-colors border-b border-gray-50 ${selectedMemberId === m.user_id
+                onClick={() => { setSelectedMemberId(m.user_id); setShowSidebarMobile(false); }}
+                className={`w-full flex items-center gap-3 px-4 py-3 text-sm transition-colors border-b border-gray-50 ${
+                  selectedMemberId === m.user_id
                     ? "bg-black text-white"
                     : "text-gray-600 hover:bg-gray-100"
-                  }`}
+                }`}
               >
                 <Avatar userId={m.user_id} name={m.name} size="sm" />
                 <div className="flex-1 text-left min-w-0">
@@ -346,12 +360,26 @@ export default function Chat({
           </div>
         </div>
 
+        {/* スマホ用オーバーレイ背景 */}
+        {showSidebarMobile && (
+          <div 
+            className="fixed inset-0 bg-black/20 z-40 sm:hidden"
+            onClick={() => setShowSidebarMobile(false)}
+          />
+        )}
+
         {/* メインチャット */}
         <div className="flex-1 flex flex-col min-w-0 relative bg-white">
-          <div className="absolute top-0 left-0 right-0 h-10 bg-white/80 backdrop-blur-sm border-b border-gray-100 z-10 flex items-center px-4 sm:hidden">
+          <div className="absolute top-0 left-0 right-0 h-10 bg-white/80 backdrop-blur-sm border-b border-gray-100 z-10 flex items-center px-4 sm:hidden justify-between">
             <span className="text-xs font-bold text-black">
               {selectedMemberId ? `DM: ${members.find(m => m.user_id === selectedMemberId)?.name}` : "全員"}
             </span>
+            <button 
+              onClick={() => setShowSidebarMobile(true)}
+              className="text-[10px] bg-black text-white px-2 py-1 rounded font-medium"
+            >
+              メンバー切替
+            </button>
           </div>
 
           <div
