@@ -203,8 +203,8 @@ export default function ClassPage() {
       </header>
 
       {/* タブ */}
-      <div className="bg-white border-b border-gray-200 shrink-0">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 flex">
+      <div className="bg-white border-b border-gray-200 shrink-0 overflow-x-auto no-scrollbar">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 flex min-w-max">
           <TabButton
             active={tab === "chat"}
             onClick={() => setTab("chat")}
@@ -299,7 +299,7 @@ function TabButton({
   return (
     <button
       onClick={onClick}
-      className={`px-5 py-3 text-sm font-medium border-b-2 transition-colors ${
+      className={`px-5 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
         active
           ? "border-black text-black"
           : "border-transparent text-gray-500 hover:text-black"
