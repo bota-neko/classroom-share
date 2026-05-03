@@ -220,7 +220,7 @@ export default function Board({ classId, currentUserId, currentDisplayName, isAd
         </div>
 
         <div className="flex-1 overflow-y-auto">
-          <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6">
             {/* 元投稿 */}
             <div className="mb-6 pb-6 border-b border-gray-100">
               <div className="flex items-start gap-3">
@@ -318,7 +318,7 @@ export default function Board({ classId, currentUserId, currentDisplayName, isAd
 
   return (
     <div className="h-full overflow-y-auto bg-white">
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-base font-medium text-black">掲示板</h2>
           <button
