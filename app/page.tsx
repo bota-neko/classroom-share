@@ -30,7 +30,6 @@ export default function Home() {
     );
   }
 
-  // ログイン済みなら何も表示しない（リダイレクト中）
   if (session) return null;
 
   return (
@@ -105,8 +104,8 @@ export default function Home() {
       <section className="py-24 bg-gray-50/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center space-y-4 mb-16">
-            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl text-black">ClassShare でできること</h2>
-            <p className="text-gray-600 max-w-2xl mx-auto text-lg">直感的な操作で、クラスのコミュニケーションを劇的に変えます。</p>
+            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl text-black">Classroom-Share でできること</h2>
+            <p className="text-gray-600 max-w-2xl mx-auto text-lg font-medium">直感的な操作で、クラスのコミュニケーションを劇的に変えます。</p>
           </div>
           <div className="grid md:grid-cols-3 gap-8">
             <FeatureCard 
@@ -117,7 +116,7 @@ export default function Home() {
               }
               title="リアルタイム・チャット"
               description="全員への連絡も、1対1の個別相談も。リアルタイムだから、会話がはずみます。"
-              color="bg-blue-500"
+              color="bg-blue-50 text-blue-500"
             />
             <FeatureCard 
               icon={
@@ -127,7 +126,7 @@ export default function Home() {
               }
               title="みんなの掲示板"
               description="質問やアイディアを自由に投稿。スタンプや「いいね」で、交流が活性化します。"
-              color="bg-green-500"
+              color="bg-green-50 text-green-500"
             />
             <FeatureCard 
               icon={
@@ -137,7 +136,7 @@ export default function Home() {
               }
               title="作品・資料の共有"
               description="作った資料や絵をかんたんアップロード。みんなの作品がいつでも見られます。"
-              color="bg-yellow-500"
+              color="bg-yellow-50 text-yellow-500"
             />
           </div>
         </div>
@@ -205,7 +204,7 @@ export default function Home() {
 
 function FeatureCard({ icon, title, description, color }: any) {
   return (
-    <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 group">
+    <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 group text-left">
       <div className={`w-14 h-14 ${color} rounded-2xl flex items-center justify-center text-3xl mb-6 shadow-lg shadow-black/5 group-hover:scale-110 transition-transform`}>
         {icon}
       </div>
@@ -217,11 +216,11 @@ function FeatureCard({ icon, title, description, color }: any) {
 
 function StepItem({ num, title, description }: any) {
   return (
-    <div className="flex gap-6 relative group">
+    <div className="flex gap-6 relative group text-left">
       <div className="w-12 h-12 bg-white text-black border-2 border-black rounded-full flex items-center justify-center font-bold text-lg shrink-0 z-10 shadow-sm group-hover:bg-black group-hover:text-white transition-colors duration-300">
         {num}
       </div>
-      <div className="pt-2">
+      <div className="pt-2 text-left">
         <h3 className="text-xl font-bold mb-2 text-black">{title}</h3>
         <p className="text-gray-600 leading-relaxed font-medium">{description}</p>
       </div>
