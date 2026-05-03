@@ -45,7 +45,7 @@ export default function SignupPage() {
     <div className="flex items-center justify-center min-h-screen bg-white px-4">
       <div className="w-full max-w-sm">
         <div className="flex justify-center mb-8">
-          <div className="w-12 h-12 bg-black rounded-xl flex items-center justify-center text-white font-bold text-xl">
+          <div className="w-12 h-12 bg-black rounded-xl flex items-center justify-center text-white text-2xl" style={{ fontFamily: "var(--font-lobster)" }}>
             C
           </div>
         </div>
