@@ -350,7 +350,7 @@ export default function Works({
       {/* 拡大表示（Lightbox） */}
       {selectedWork && (
         <div
-          className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4 sm:p-8"
+          className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-2 sm:p-4"
           onClick={() => setSelectedWork(null)}
         >
           <button
@@ -374,16 +374,16 @@ export default function Works({
           </button>
 
           <div
-            className="bg-white rounded-xl overflow-hidden max-w-4xl w-full max-h-full flex flex-col sm:flex-row"
+            className="bg-white rounded-xl overflow-hidden max-w-6xl w-full max-h-[96vh] flex flex-col sm:flex-row"
             onClick={(e) => e.stopPropagation()}
           >
             {/* 画像エリア */}
-            <div className="flex-1 bg-gray-50 flex items-center justify-center min-h-[300px]">
+            <div className="flex-1 bg-gray-50 flex items-center justify-center min-h-[500px]">
               {selectedWork.image_url ? (
                 <img
                   src={selectedWork.image_url}
                   alt={selectedWork.title}
-                  className="max-w-full max-h-[70vh] object-contain"
+                  className="max-w-full max-h-[88vh] object-contain"
                 />
               ) : (
                 <div className="text-gray-300 text-6xl">📄</div>
