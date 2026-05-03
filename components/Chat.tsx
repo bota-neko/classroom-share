@@ -15,19 +15,24 @@ type Message = {
   created_at: string;
 };
 
+type LikeState = { count: number; liked: boolean };
+
 type ChatProps = {
   classId: string;
   currentUserId: string;
   currentDisplayName: string;
+  bubbleColor: string;
 };
 
 export default function Chat({
   classId,
   currentUserId,
   currentDisplayName,
+  bubbleColor,
 }: ChatProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [profiles, setProfiles] = useState<Map<string, string>>(new Map());
+  const [likes, setLikes] = useState<Map<string, LikeState>>(new Map());
   const [loading, setLoading] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -56,17 +61,36 @@ export default function Chat({
         .order("created_at", { ascending: true });
 
       if (error) {
-        console.log("メッセージ取得エラー:", error);
         setLoading(false);
         return;
       }
       const msgs = data || [];
       setMessages(msgs);
 
-      const userIds = msgs.map((m) => m.user_id);
-      const profileMap = await fetchProfiles(userIds);
+      const profileMap = await fetchProfiles(msgs.map((m) => m.user_id));
       profileMap.set(currentUserId, currentDisplayName);
       setProfiles(profileMap);
+
+      // いいね取得
+      if (msgs.length > 0) {
+        const { data: likesData } = await supabase
+          .from("message_likes")
+          .select("message_id, user_id")
+          .in("message_id", msgs.map((m) => m.id));
+
+        if (likesData) {
+          const map = new Map<string, LikeState>();
+          likesData.forEach((l) => {
+            const cur = map.get(l.message_id) || { count: 0, liked: false };
+            map.set(l.message_id, {
+              count: cur.count + 1,
+              liked: cur.liked || l.user_id === currentUserId,
+            });
+          });
+          setLikes(map);
+        }
+      }
+
       setLoading(false);
     };
 
@@ -74,51 +98,69 @@ export default function Chat({
 
     const channel = supabase
       .channel(`messages-${classId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "messages",
-          filter: `class_id=eq.${classId}`,
-        },
-        async (payload) => {
-          const newMsg = payload.new as Message;
-          setMessages((prev) => {
-            if (prev.some((m) => m.id === newMsg.id)) return prev;
-            return [...prev, newMsg];
-          });
-
-          if (!isAtBottom.current) {
-            setUnreadCount((n) => n + 1);
-          }
-
-          setProfiles((prev) => {
-            if (prev.has(newMsg.user_id)) return prev;
-            fetchProfiles([newMsg.user_id]).then((newProfiles) => {
-              setProfiles((p) => {
-                const merged = new Map(p);
-                newProfiles.forEach((v, k) => merged.set(k, v));
-                return merged;
-              });
+      .on("postgres_changes", {
+        event: "INSERT",
+        schema: "public",
+        table: "messages",
+        filter: `class_id=eq.${classId}`,
+      }, async (payload) => {
+        const newMsg = payload.new as Message;
+        setMessages((prev) => {
+          if (prev.some((m) => m.id === newMsg.id)) return prev;
+          return [...prev, newMsg];
+        });
+        if (!isAtBottom.current) setUnreadCount((n) => n + 1);
+        setProfiles((prev) => {
+          if (prev.has(newMsg.user_id)) return prev;
+          fetchProfiles([newMsg.user_id]).then((np) => {
+            setProfiles((p) => {
+              const merged = new Map(p);
+              np.forEach((v, k) => merged.set(k, v));
+              return merged;
             });
-            return prev;
           });
-        }
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "DELETE",
-          schema: "public",
-          table: "messages",
-          filter: `class_id=eq.${classId}`,
-        },
-        (payload) => {
-          const deletedId = payload.old.id;
-          setMessages((prev) => prev.filter((m) => m.id !== deletedId));
-        }
-      )
+          return prev;
+        });
+      })
+      .on("postgres_changes", {
+        event: "DELETE",
+        schema: "public",
+        table: "messages",
+        filter: `class_id=eq.${classId}`,
+      }, (payload) => {
+        setMessages((prev) => prev.filter((m) => m.id !== payload.old.id));
+      })
+      .on("postgres_changes", {
+        event: "INSERT",
+        schema: "public",
+        table: "message_likes",
+        filter: `class_id=eq.${classId}`,
+      }, (payload) => {
+        const { message_id, user_id } = payload.new as { message_id: string; user_id: string };
+        if (user_id === currentUserId) return; // 楽観的更新済みのためスキップ
+        setLikes((prev) => {
+          const cur = prev.get(message_id) || { count: 0, liked: false };
+          const next = new Map(prev);
+          next.set(message_id, { count: cur.count + 1, liked: cur.liked });
+          return next;
+        });
+      })
+      .on("postgres_changes", {
+        event: "DELETE",
+        schema: "public",
+        table: "message_likes",
+        filter: `class_id=eq.${classId}`,
+      }, (payload) => {
+        const { message_id, user_id } = payload.old as { message_id: string; user_id: string };
+        if (user_id === currentUserId) return; // 楽観的更新済みのためスキップ
+        setLikes((prev) => {
+          const cur = prev.get(message_id);
+          if (!cur) return prev;
+          const next = new Map(prev);
+          next.set(message_id, { count: Math.max(0, cur.count - 1), liked: cur.liked });
+          return next;
+        });
+      })
       .subscribe();
 
     return () => {
@@ -127,37 +169,25 @@ export default function Chat({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [classId]);
 
-  // メッセージ変化時のスクロール制御
   useEffect(() => {
     if (loading) return;
     if (initialLoad.current) {
-      // 初回ロードは即座に最下部へ
       scrollToBottom(false);
       initialLoad.current = false;
       return;
     }
-    if (isAtBottom.current) {
-      scrollToBottom(true);
-    }
+    if (isAtBottom.current) scrollToBottom(true);
   }, [messages, loading]);
 
   const handleSend = async (content: string, imageUrl: string | null) => {
-    const { error } = await supabase
-      .from("messages")
-      .insert({
-        class_id: classId,
-        user_id: currentUserId,
-        content,
-        image_url: imageUrl,
-      });
+    const { error } = await supabase.from("messages").insert({
+      class_id: classId,
+      user_id: currentUserId,
+      content,
+      image_url: imageUrl,
+    });
+    if (error) { alert("送信に失敗しました: " + error.message); return; }
 
-    if (error) {
-      console.log("投稿エラー:", error);
-      alert("送信に失敗しました: " + error.message);
-      return;
-    }
-
-    // 自分の送信後は常に最下部へ
     isAtBottom.current = true;
     setUnreadCount(0);
 
@@ -168,14 +198,14 @@ export default function Chat({
       .neq("user_id", currentUserId);
 
     if (members && members.length > 0) {
-      const notifications = members.map((m) => ({
-        user_id: m.user_id,
-        type: "chat",
-        content: `${currentDisplayName}さんが「${content.substring(0, 20)}${content.length > 20 ? "..." : ""}」と発言しました`,
-        link: `/class/${classId}?tab=chat`,
-      }));
-      const { error: nError } = await supabase.from("notifications").insert(notifications);
-      if (nError) console.error("通知作成エラー:", nError);
+      await supabase.from("notifications").insert(
+        members.map((m) => ({
+          user_id: m.user_id,
+          type: "chat",
+          content: `${currentDisplayName}さんが「${content.substring(0, 20)}${content.length > 20 ? "..." : ""}」と発言しました`,
+          link: `/class/${classId}?tab=chat`,
+        }))
+      );
     }
   };
 
@@ -185,12 +215,37 @@ export default function Chat({
       .delete()
       .eq("id", messageId)
       .eq("user_id", currentUserId);
-
-    if (error) {
-      console.log("削除エラー:", error);
-      return;
-    }
+    if (error) return;
     setMessages((prev) => prev.filter((m) => m.id !== messageId));
+  };
+
+  const handleLike = async (messageId: string) => {
+    const cur = likes.get(messageId);
+    const isLiked = cur?.liked ?? false;
+
+    // 楽観的更新
+    setLikes((prev) => {
+      const c = prev.get(messageId) || { count: 0, liked: false };
+      const next = new Map(prev);
+      next.set(messageId, {
+        count: isLiked ? Math.max(0, c.count - 1) : c.count + 1,
+        liked: !isLiked,
+      });
+      return next;
+    });
+
+    if (isLiked) {
+      await supabase.from("message_likes")
+        .delete()
+        .eq("message_id", messageId)
+        .eq("user_id", currentUserId);
+    } else {
+      await supabase.from("message_likes").insert({
+        message_id: messageId,
+        class_id: classId,
+        user_id: currentUserId,
+      });
+    }
   };
 
   return (
@@ -200,16 +255,14 @@ export default function Chat({
         onScroll={handleScroll}
         className="flex-1 overflow-y-auto"
       >
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6">
+        <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6">
           {loading ? (
             <div className="flex items-center justify-center py-20">
               <div className="w-6 h-6 border-2 border-gray-200 border-t-black rounded-full animate-spin" />
             </div>
           ) : messages.length === 0 ? (
             <div className="text-center py-20">
-              <p className="text-gray-500 text-sm">
-                最初のメッセージを送ってみよう
-              </p>
+              <p className="text-gray-500 text-sm">最初のメッセージを送ってみよう</p>
             </div>
           ) : (
             messages.map((msg) => (
@@ -219,6 +272,10 @@ export default function Chat({
                 currentUserId={currentUserId}
                 displayName={profiles.get(msg.user_id) || "ユーザー"}
                 onDelete={handleDelete}
+                onLike={handleLike}
+                likeCount={likes.get(msg.id)?.count ?? 0}
+                liked={likes.get(msg.id)?.liked ?? false}
+                bubbleColor={bubbleColor}
               />
             ))
           )}
@@ -226,15 +283,10 @@ export default function Chat({
         </div>
       </div>
 
-      {/* 未読メッセージインジケーター */}
       {unreadCount > 0 && (
         <div className="relative">
           <button
-            onClick={() => {
-              isAtBottom.current = true;
-              setUnreadCount(0);
-              scrollToBottom(true);
-            }}
+            onClick={() => { isAtBottom.current = true; setUnreadCount(0); scrollToBottom(true); }}
             className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-4 py-2 bg-black text-white text-xs font-medium rounded-full shadow-lg hover:bg-gray-800 transition-colors"
           >
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-3.5 h-3.5">

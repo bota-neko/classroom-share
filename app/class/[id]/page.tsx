@@ -20,6 +20,7 @@ export default function ClassPage() {
 
   const [className, setClassName] = useState("");
   const [joinCode, setJoinCode] = useState<string | null>(null);
+  const [meetingUrl, setMeetingUrl] = useState<string | null>(null);
   const [userId, setUserId] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [role, setRole] = useState<string>("");
@@ -62,7 +63,7 @@ export default function ClassPage() {
 
       const { data: classData, error } = await supabase
         .from("classes")
-        .select("name, join_code")
+        .select("name, join_code, meeting_url")
         .eq("id", classId)
         .single();
 
@@ -72,13 +73,13 @@ export default function ClassPage() {
       }
       setClassName(classData.name);
       setJoinCode(classData.join_code);
+      setMeetingUrl(classData.meeting_url ?? null);
       setLoading(false);
     };
 
     init();
 
-    // 自分のメンバーシップ状態をリアルタイム購読
-    const channelId = `membership-${classId}-${userId}-${Date.now()}`;
+    const channelId = `class-page-${classId}-${Date.now()}`;
     const channel = supabase
       .channel(channelId)
       .on(
@@ -93,6 +94,20 @@ export default function ClassPage() {
           if (payload.new && (payload.new as any).status) {
             setStatus((payload.new as any).status);
           }
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "classes",
+          filter: `id=eq.${classId}`,
+        },
+        (payload) => {
+          const updated = payload.new as any;
+          if (updated.name) setClassName(updated.name);
+          if ("meeting_url" in updated) setMeetingUrl(updated.meeting_url ?? null);
         }
       )
       .subscribe();
@@ -169,6 +184,19 @@ export default function ClassPage() {
             </span>
           )}
           <div className="ml-auto flex items-center gap-2">
+            {meetingUrl && (
+              <a
+                href={meetingUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-black text-white text-xs font-medium rounded-lg hover:bg-gray-800 transition-colors shrink-0"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3.5 h-3.5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="m15.75 10.5 4.72-4.72a.75.75 0 0 1 1.28.53v11.38a.75.75 0 0 1-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 0 0 2.25-2.25v-9a2.25 2.25 0 0 0-2.25-2.25h-9A2.25 2.25 0 0 0 2.25 7.5v9a2.25 2.25 0 0 0 2.25 2.25Z" />
+                </svg>
+                会議に参加
+              </a>
+            )}
             <NotificationBell userId={userId} />
           </div>
         </div>
@@ -214,6 +242,7 @@ export default function ClassPage() {
             classId={classId}
             currentUserId={userId}
             currentDisplayName={displayName}
+            bubbleColor={theme.hex}
           />
         )}
         {tab === "board" && (
@@ -245,9 +274,11 @@ export default function ClassPage() {
             classId={classId}
             joinCode={joinCode}
             className={className}
+            meetingUrl={meetingUrl}
             onUpdate={(data) => {
               if (data.name !== undefined) setClassName(data.name);
               if (data.join_code !== undefined) setJoinCode(data.join_code);
+              if ("meeting_url" in data) setMeetingUrl(data.meeting_url ?? null);
             }}
           />
         )}

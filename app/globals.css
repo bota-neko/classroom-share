@@ -16,3 +16,73 @@ body {
   background: var(--background);
   color: var(--foreground);
 }
+
+@keyframes like-pop {
+  0%   { transform: scale(1); }
+  30%  { transform: scale(2); }
+  60%  { transform: scale(0.85); }
+  80%  { transform: scale(1.15); }
+  100% { transform: scale(1); }
+}
+
+.like-pop {
+  animation: like-pop 0.45s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+}
+
+/* 自分の吹き出し（右） */
+.bubble-own {
+  display: inline-block;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background-color: #9bee8c;
+  text-align: left;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.6;
+  color: #000000;
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+
+/* 相手の吹き出し（左・白・尻尾が左向き） */
+.bubble-other {
+  position: relative;
+  display: inline-block;
+  margin-left: 16px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background-color: #ffffff;
+  border: 1px solid #e5e7eb;
+  text-align: left;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.6;
+  color: #000000;
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+
+.bubble-other::after {
+  content: "";
+  position: absolute;
+  top: 35%;
+  left: 0;
+  border-style: solid;
+  border-width: 10px 10px 0 0;
+  border-color: transparent #e5e7eb transparent transparent;
+  transform: translate(-100%, calc(-50% - 0.4px)) skew(0, 10deg);
+  transform-origin: right;
+}
+
+.bubble-other::before {
+  content: "";
+  position: absolute;
+  top: 35%;
+  left: 0;
+  border-style: solid;
+  border-width: 9px 9px 0 0;
+  border-color: transparent #ffffff transparent transparent;
+  transform: translate(calc(-100% + 1px), calc(-50% - 0.4px)) skew(0, 10deg);
+  transform-origin: right;
+  z-index: 1;
+}

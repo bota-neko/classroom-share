@@ -125,6 +125,15 @@ export default function MessageInput({ onSend }: MessageInputProps) {
           />
 
           <button
+            onClick={() => { onSend("👍", null); }}
+            disabled={uploading}
+            className="p-2 text-xl leading-none hover:scale-110 transition-transform shrink-0"
+            title="いいね！"
+          >
+            👍
+          </button>
+
+          <button
             onClick={handleSubmit}
             disabled={uploading || (!text.trim() && !previewUrl)}
             className="p-2 bg-black text-white rounded-lg hover:bg-gray-800 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors shrink-0"

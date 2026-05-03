@@ -11,13 +11,15 @@ type InvitePanelProps = {
   classId: string;
   joinCode: string | null;
   className: string;
-  onUpdate: (data: { name?: string; join_code?: string }) => void;
+  meetingUrl: string | null;
+  onUpdate: (data: { name?: string; join_code?: string; meeting_url?: string | null }) => void;
 };
 
 export default function InvitePanel({
   classId,
   joinCode,
   className,
+  meetingUrl,
   onUpdate,
 }: InvitePanelProps) {
   const router = useRouter();
@@ -25,6 +27,8 @@ export default function InvitePanel({
   const [editingName, setEditingName] = useState(false);
   const [nameInput, setNameInput] = useState(className);
   const [saving, setSaving] = useState(false);
+  const [meetingInput, setMeetingInput] = useState(meetingUrl || "");
+  const [editingMeeting, setEditingMeeting] = useState(false);
   const [members, setMembers] = useState<{ id: string; user_id: string; status: string; name: string; role: string }[]>([]);
   const [fetchingMembers, setFetchingMembers] = useState(true);
 
@@ -133,6 +137,19 @@ export default function InvitePanel({
     }
     onUpdate({ name: trimmed });
     setEditingName(false);
+  };
+
+  const handleSaveMeeting = async () => {
+    const url = meetingInput.trim() || null;
+    setSaving(true);
+    const { error } = await supabase
+      .from("classes")
+      .update({ meeting_url: url })
+      .eq("id", classId);
+    setSaving(false);
+    if (error) { alert("更新失敗: " + error.message); return; }
+    onUpdate({ meeting_url: url });
+    setEditingMeeting(false);
   };
 
   const handleDelete = async () => {
@@ -377,6 +394,55 @@ export default function InvitePanel({
                   )}
                 </div>
               ))}
+            </div>
+          )}
+        </section>
+
+        {/* 会議URL */}
+        <section className="bg-white border border-gray-200 rounded-xl p-6">
+          <h2 className="text-sm font-medium text-gray-500 mb-1 uppercase tracking-wide">
+            会議URL
+          </h2>
+          <p className="text-xs text-gray-500 mb-4">
+            TeamsやMeetのURLを貼ると生徒がワンクリックで参加できます
+          </p>
+          {editingMeeting ? (
+            <>
+              <input
+                type="url"
+                value={meetingInput}
+                onChange={(e) => setMeetingInput(e.target.value)}
+                placeholder="https://teams.microsoft.com/..."
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg mb-3 text-sm focus:outline-none focus:ring-2 focus:ring-black focus:border-black"
+                autoFocus
+              />
+              <div className="flex gap-2 justify-end">
+                <button
+                  onClick={() => { setEditingMeeting(false); setMeetingInput(meetingUrl || ""); }}
+                  className="px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
+                >
+                  キャンセル
+                </button>
+                <button
+                  onClick={handleSaveMeeting}
+                  disabled={saving}
+                  className="px-3 py-1.5 text-sm bg-black text-white rounded-md hover:bg-gray-800 disabled:bg-gray-300"
+                >
+                  保存
+                </button>
+              </div>
+            </>
+          ) : (
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-sm text-gray-700 truncate">
+                {meetingUrl || <span className="text-gray-400">未設定</span>}
+              </span>
+              <button
+                onClick={() => setEditingMeeting(true)}
+                className="text-sm text-gray-500 hover:text-black shrink-0"
+              >
+                {meetingUrl ? "編集" : "設定"}
+              </button>
             </div>
           )}
         </section>

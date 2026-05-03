@@ -31,14 +31,14 @@ export function generateJoinCode(): string {
 
 // クラスIDからパステルテーマを生成
 const CLASS_COLORS = [
-  { bg: "bg-blue-100", text: "text-blue-900", accent: "bg-blue-200" },
-  { bg: "bg-emerald-100", text: "text-emerald-900", accent: "bg-emerald-200" },
-  { bg: "bg-violet-100", text: "text-violet-900", accent: "bg-violet-200" },
-  { bg: "bg-rose-100", text: "text-rose-900", accent: "bg-rose-200" },
-  { bg: "bg-amber-100", text: "text-amber-900", accent: "bg-amber-200" },
-  { bg: "bg-teal-100", text: "text-teal-900", accent: "bg-teal-200" },
-  { bg: "bg-indigo-100", text: "text-indigo-900", accent: "bg-indigo-200" },
-  { bg: "bg-pink-100", text: "text-pink-900", accent: "bg-pink-200" },
+  { bg: "bg-blue-100", text: "text-blue-900", accent: "bg-blue-200", hex: "#dbeafe" },
+  { bg: "bg-emerald-100", text: "text-emerald-900", accent: "bg-emerald-200", hex: "#d1fae5" },
+  { bg: "bg-violet-100", text: "text-violet-900", accent: "bg-violet-200", hex: "#ede9fe" },
+  { bg: "bg-rose-100", text: "text-rose-900", accent: "bg-rose-200", hex: "#ffe4e6" },
+  { bg: "bg-amber-100", text: "text-amber-900", accent: "bg-amber-200", hex: "#fef3c7" },
+  { bg: "bg-teal-100", text: "text-teal-900", accent: "bg-teal-200", hex: "#ccfbf1" },
+  { bg: "bg-indigo-100", text: "text-indigo-900", accent: "bg-indigo-200", hex: "#e0e7ff" },
+  { bg: "bg-pink-100", text: "text-pink-900", accent: "bg-pink-200", hex: "#fce7f3" },
 ];
 
 export function getClassTheme(id: string) {
