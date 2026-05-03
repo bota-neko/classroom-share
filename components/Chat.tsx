@@ -114,35 +114,18 @@ export default function Chat({
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // 送信（楽観的UI更新）
   const handleSend = async (content: string, imageUrl: string | null) => {
-    // 即座に画面に反映（仮ID）
-    const tempId = `temp-${Date.now()}`;
-    const tempMsg: Message = {
-      id: tempId,
-      class_id: classId,
-      user_id: currentUserId,
-      content,
-      image_url: imageUrl,
-      created_at: new Date().toISOString(),
-    };
-    setMessages((prev) => [...prev, tempMsg]);
-
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from("messages")
       .insert({
         class_id: classId,
         user_id: currentUserId,
         content,
         image_url: imageUrl,
-      })
-      .select()
-      .single();
+      });
 
     if (error) {
       console.log("投稿エラー:", error);
-      // 失敗時は仮メッセージを除去
-      setMessages((prev) => prev.filter((m) => m.id !== tempId));
       alert("送信に失敗しました: " + error.message);
       return;
     }
@@ -163,18 +146,6 @@ export default function Chat({
       }));
       const { error: nError } = await supabase.from("notifications").insert(notifications);
       if (nError) console.error("通知作成エラー:", nError);
-    }
-
-    // 仮IDを正式なものに置換
-    if (data) {
-      setMessages((prev) => {
-        // すでにRealtime側で同じIDのメッセージが追加されている場合は、仮メッセージを消すだけにする
-        if (prev.some((m) => m.id === (data as Message).id)) {
-          return prev.filter((m) => m.id !== tempId);
-        }
-        // まだ追加されていない場合は、仮メッセージを本番データで置換する
-        return prev.map((m) => (m.id === tempId ? (data as Message) : m));
-      });
     }
   };
 
