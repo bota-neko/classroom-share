@@ -185,7 +185,7 @@ export default function ClassPage() {
           <TabButton
             active={tab === "board"}
             onClick={() => setTab("board")}
-            label="掲示板"
+            label="質問・掲示板"
           />
           <TabButton
             active={tab === "works"}
