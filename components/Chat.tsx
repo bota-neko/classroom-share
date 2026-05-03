@@ -147,9 +147,9 @@ export default function Chat({
       }, async (payload) => {
         const newMsg = payload.new as Message;
         // フィルタリング: 現在の表示モード（全員 or 特定個人）に一致する場合のみ追加
-        const isMatch = selectedMemberId 
-          ? (newMsg.receiver_id === selectedMemberId && newMsg.user_id === currentUserId) || 
-            (newMsg.receiver_id === currentUserId && newMsg.user_id === selectedMemberId)
+        const isMatch = selectedMemberId
+          ? (newMsg.receiver_id === selectedMemberId && newMsg.user_id === currentUserId) ||
+          (newMsg.receiver_id === currentUserId && newMsg.user_id === selectedMemberId)
           : newMsg.receiver_id === null;
 
         if (isMatch) {
@@ -299,8 +299,8 @@ export default function Chat({
   };
 
   return (
-    <div className="h-full bg-gray-50/50">
-      <div className="max-w-6xl mx-auto h-full flex bg-white border-x border-gray-200 overflow-hidden relative">
+    <div className="h-full">
+      <div className="max-w-6xl mx-auto h-full flex bg-white border-gray-200 overflow-hidden relative">
         {/* サイドバー */}
         <div className="w-64 border-r border-gray-100 flex flex-col bg-gray-50/30 hidden sm:flex shrink-0">
           <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-white/50">
@@ -312,11 +312,10 @@ export default function Chat({
           <div className="flex-1 overflow-y-auto">
             <button
               onClick={() => setSelectedMemberId(null)}
-              className={`w-full flex items-center gap-3 px-4 py-3 text-sm transition-colors border-b border-gray-50 ${
-                selectedMemberId === null
+              className={`w-full flex items-center gap-3 px-4 py-3 text-sm transition-colors border-b border-gray-50 ${selectedMemberId === null
                   ? "bg-black text-white"
                   : "text-gray-600 hover:bg-gray-100"
-              }`}
+                }`}
             >
               <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs ${selectedMemberId === null ? "bg-white/20" : "bg-gray-200"}`}>
                 👥
@@ -330,11 +329,10 @@ export default function Chat({
               <button
                 key={m.user_id}
                 onClick={() => setSelectedMemberId(m.user_id)}
-                className={`w-full flex items-center gap-3 px-4 py-3 text-sm transition-colors border-b border-gray-50 ${
-                  selectedMemberId === m.user_id
+                className={`w-full flex items-center gap-3 px-4 py-3 text-sm transition-colors border-b border-gray-50 ${selectedMemberId === m.user_id
                     ? "bg-black text-white"
                     : "text-gray-600 hover:bg-gray-100"
-                }`}
+                  }`}
               >
                 <Avatar userId={m.user_id} name={m.name} size="sm" />
                 <div className="flex-1 text-left min-w-0">
@@ -351,9 +349,9 @@ export default function Chat({
         {/* メインチャット */}
         <div className="flex-1 flex flex-col min-w-0 relative bg-white">
           <div className="absolute top-0 left-0 right-0 h-10 bg-white/80 backdrop-blur-sm border-b border-gray-100 z-10 flex items-center px-4 sm:hidden">
-             <span className="text-xs font-bold text-black">
-               {selectedMemberId ? `DM: ${members.find(m => m.user_id === selectedMemberId)?.name}` : "全員"}
-             </span>
+            <span className="text-xs font-bold text-black">
+              {selectedMemberId ? `DM: ${members.find(m => m.user_id === selectedMemberId)?.name}` : "全員"}
+            </span>
           </div>
 
           <div
@@ -404,8 +402,8 @@ export default function Chat({
           )}
 
           <div className="px-4 pb-4">
-            <MessageInput 
-              onSend={handleSend} 
+            <MessageInput
+              onSend={handleSend}
               placeholder={selectedMemberId ? `${members.find(m => m.user_id === selectedMemberId)?.name}さんへ個別メッセージ...` : "クラス全員へ送信..."}
             />
           </div>
