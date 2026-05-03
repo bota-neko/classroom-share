@@ -145,6 +145,17 @@ export default function Works({
 
     const file = fileInputRef.current?.files?.[0];
     if (file) {
+      const allowedTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+      if (!allowedTypes.includes(file.type)) {
+        alert("画像はJPEG、PNG、GIF、WebPのみ対応しています");
+        setUploading(false);
+        return;
+      }
+      if (file.size > 10 * 1024 * 1024) {
+        alert("ファイルサイズは10MB以下にしてください");
+        setUploading(false);
+        return;
+      }
       const ext = file.name.split(".").pop();
       const fileName = `works/${Date.now()}-${Math.random()
         .toString(36)

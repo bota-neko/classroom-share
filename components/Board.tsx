@@ -168,7 +168,9 @@ export default function Board({ classId, currentUserId, currentDisplayName, isAd
 
   const handleDeletePost = async (postId: string) => {
     if (!confirm("この投稿を削除しますか？返信もすべて削除されます。")) return;
-    const { error } = await supabase.from("board_posts").delete().eq("id", postId);
+    const query = supabase.from("board_posts").delete().eq("id", postId);
+    if (!isAdmin) query.eq("user_id", currentUserId);
+    const { error } = await query;
     if (error) return;
     setPosts((prev) => prev.filter((p) => p.id !== postId));
     if (selectedPost?.id === postId) setSelectedPost(null);
@@ -189,7 +191,9 @@ export default function Board({ classId, currentUserId, currentDisplayName, isAd
   };
 
   const handleDeleteReply = async (replyId: string) => {
-    const { error } = await supabase.from("board_replies").delete().eq("id", replyId);
+    const query = supabase.from("board_replies").delete().eq("id", replyId);
+    if (!isAdmin) query.eq("user_id", currentUserId);
+    const { error } = await query;
     if (error) return;
     setReplies((prev) => prev.filter((r) => r.id !== replyId));
     if (selectedPost) {

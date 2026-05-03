@@ -105,9 +105,30 @@ export default function Files({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [classId]);
 
+  const ALLOWED_FILE_TYPES = [
+    "image/jpeg", "image/png", "image/gif", "image/webp",
+    "application/pdf",
+    "application/msword",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "application/vnd.ms-excel",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "application/vnd.ms-powerpoint",
+    "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    "text/plain",
+  ];
+
   const handleUpload = async () => {
     const file = fileInputRef.current?.files?.[0];
     if (!file) return;
+
+    if (!ALLOWED_FILE_TYPES.includes(file.type)) {
+      alert("このファイル形式はアップロードできません");
+      return;
+    }
+    if (file.size > 50 * 1024 * 1024) {
+      alert("ファイルサイズは50MB以下にしてください");
+      return;
+    }
 
     setUploading(true);
     const ext = file.name.split(".").pop();

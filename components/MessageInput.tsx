@@ -13,7 +13,18 @@ export default function MessageInput({ onSend }: MessageInputProps) {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+  const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+
   const uploadImage = async (file: File): Promise<string | null> => {
+    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+      alert("画像はJPEG、PNG、GIF、WebPのみ対応しています");
+      return null;
+    }
+    if (file.size > MAX_FILE_SIZE) {
+      alert("ファイルサイズは10MB以下にしてください");
+      return null;
+    }
     const ext = file.name.split(".").pop();
     const fileName = `messages/${Date.now()}-${Math.random()
       .toString(36)
