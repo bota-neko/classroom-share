@@ -324,13 +324,14 @@ export default function Chat({
           <div className="flex-1 overflow-y-auto">
             <button
               onClick={() => { setSelectedMemberId(null); setShowSidebarMobile(false); }}
+              style={selectedMemberId === null ? { backgroundColor: bubbleColor } : {}}
               className={`w-full flex items-center gap-3 px-4 py-3 text-sm transition-colors border-b border-gray-50 ${
                 selectedMemberId === null
-                  ? "bg-black text-white"
+                  ? "text-black font-bold"
                   : "text-gray-600 hover:bg-gray-100"
               }`}
             >
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs ${selectedMemberId === null ? "bg-white/20" : "bg-gray-200"}`}>
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs ${selectedMemberId === null ? "bg-white/50" : "bg-gray-200"}`}>
                 👥
               </div>
               <div className="flex-1 text-left">
@@ -342,16 +343,17 @@ export default function Chat({
               <button
                 key={m.user_id}
                 onClick={() => { setSelectedMemberId(m.user_id); setShowSidebarMobile(false); }}
+                style={selectedMemberId === m.user_id ? { backgroundColor: bubbleColor } : {}}
                 className={`w-full flex items-center gap-3 px-4 py-3 text-sm transition-colors border-b border-gray-50 ${
                   selectedMemberId === m.user_id
-                    ? "bg-black text-white"
+                    ? "text-black font-bold"
                     : "text-gray-600 hover:bg-gray-100"
                 }`}
               >
                 <Avatar userId={m.user_id} name={m.name} size="sm" />
                 <div className="flex-1 text-left min-w-0">
                   <div className="font-medium truncate">{m.name}</div>
-                  <div className={`text-[10px] uppercase ${selectedMemberId === m.user_id ? "text-gray-300" : "text-gray-400"}`}>
+                  <div className={`text-[10px] uppercase ${selectedMemberId === m.user_id ? "text-gray-600" : "text-gray-400"}`}>
                     {m.role === "admin" ? "管理者" : "生徒"}
                   </div>
                 </div>
@@ -376,7 +378,8 @@ export default function Chat({
             </span>
             <button 
               onClick={() => setShowSidebarMobile(true)}
-              className="text-[10px] bg-black text-white px-2 py-1 rounded font-medium"
+              style={{ backgroundColor: bubbleColor }}
+              className="text-[10px] text-black px-2.5 py-1 rounded-full font-bold shadow-sm border border-black/5"
             >
               メンバー切替
             </button>
