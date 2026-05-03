@@ -374,7 +374,7 @@ export default function Works({
           </button>
 
           <div
-            className="bg-white rounded-xl overflow-hidden max-w-6xl w-full max-h-[96vh] flex flex-col sm:flex-row"
+            className="bg-white rounded-xl overflow-hidden w-full max-h-[96vh] flex flex-col sm:flex-row"
             onClick={(e) => e.stopPropagation()}
           >
             {/* 画像エリア */}
