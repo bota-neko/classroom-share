@@ -9,8 +9,9 @@ import Works from "@/components/Works";
 import NotificationBell from "@/components/NotificationBell";
 import InvitePanel from "@/components/InvitePanel";
 import Files from "@/components/Files";
+import Board from "@/components/Board";
 
-type Tab = "chat" | "works" | "files" | "invite";
+type Tab = "chat" | "board" | "works" | "files" | "invite";
 
 export default function ClassPage() {
   const params = useParams();
@@ -179,7 +180,12 @@ export default function ClassPage() {
           <TabButton
             active={tab === "chat"}
             onClick={() => setTab("chat")}
-            label="ストリーム"
+            label="チャット"
+          />
+          <TabButton
+            active={tab === "board"}
+            onClick={() => setTab("board")}
+            label="掲示板"
           />
           <TabButton
             active={tab === "works"}
@@ -208,6 +214,14 @@ export default function ClassPage() {
             classId={classId}
             currentUserId={userId}
             currentDisplayName={displayName}
+          />
+        )}
+        {tab === "board" && (
+          <Board
+            classId={classId}
+            currentUserId={userId}
+            currentDisplayName={displayName}
+            isAdmin={isAdmin}
           />
         )}
         {tab === "works" && (
