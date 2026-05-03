@@ -29,7 +29,23 @@ export default function Chat({
   const [messages, setMessages] = useState<Message[]>([]);
   const [profiles, setProfiles] = useState<Map<string, string>>(new Map());
   const [loading, setLoading] = useState(true);
+  const [unreadCount, setUnreadCount] = useState(0);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const isAtBottom = useRef(true);
+  const initialLoad = useRef(true);
+
+  const scrollToBottom = (smooth = true) => {
+    bottomRef.current?.scrollIntoView({ behavior: smooth ? "smooth" : "instant" });
+  };
+
+  const handleScroll = () => {
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+    isAtBottom.current = atBottom;
+    if (atBottom) setUnreadCount(0);
+  };
 
   useEffect(() => {
     const fetchMessages = async () => {
@@ -49,7 +65,6 @@ export default function Chat({
 
       const userIds = msgs.map((m) => m.user_id);
       const profileMap = await fetchProfiles(userIds);
-      // 自分の名前も追加
       profileMap.set(currentUserId, currentDisplayName);
       setProfiles(profileMap);
       setLoading(false);
@@ -57,7 +72,6 @@ export default function Chat({
 
     fetchMessages();
 
-    // Realtime購読
     const channel = supabase
       .channel(`messages-${classId}`)
       .on(
@@ -75,7 +89,10 @@ export default function Chat({
             return [...prev, newMsg];
           });
 
-          // 新規ユーザーのプロフィール取得
+          if (!isAtBottom.current) {
+            setUnreadCount((n) => n + 1);
+          }
+
           setProfiles((prev) => {
             if (prev.has(newMsg.user_id)) return prev;
             fetchProfiles([newMsg.user_id]).then((newProfiles) => {
@@ -110,9 +127,19 @@ export default function Chat({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [classId]);
 
+  // メッセージ変化時のスクロール制御
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+    if (loading) return;
+    if (initialLoad.current) {
+      // 初回ロードは即座に最下部へ
+      scrollToBottom(false);
+      initialLoad.current = false;
+      return;
+    }
+    if (isAtBottom.current) {
+      scrollToBottom(true);
+    }
+  }, [messages, loading]);
 
   const handleSend = async (content: string, imageUrl: string | null) => {
     const { error } = await supabase
@@ -130,7 +157,10 @@ export default function Chat({
       return;
     }
 
-    // 他のメンバー全員に通知を送る
+    // 自分の送信後は常に最下部へ
+    isAtBottom.current = true;
+    setUnreadCount(0);
+
     const { data: members } = await supabase
       .from("memberships")
       .select("user_id")
@@ -165,7 +195,11 @@ export default function Chat({
 
   return (
     <div className="flex flex-col h-full bg-white">
-      <div className="flex-1 overflow-y-auto">
+      <div
+        ref={scrollContainerRef}
+        onScroll={handleScroll}
+        className="flex-1 overflow-y-auto"
+      >
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6">
           {loading ? (
             <div className="flex items-center justify-center py-20">
@@ -191,6 +225,26 @@ export default function Chat({
           <div ref={bottomRef} />
         </div>
       </div>
+
+      {/* 未読メッセージインジケーター */}
+      {unreadCount > 0 && (
+        <div className="relative">
+          <button
+            onClick={() => {
+              isAtBottom.current = true;
+              setUnreadCount(0);
+              scrollToBottom(true);
+            }}
+            className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-4 py-2 bg-black text-white text-xs font-medium rounded-full shadow-lg hover:bg-gray-800 transition-colors"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-3.5 h-3.5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+            </svg>
+            {unreadCount}件の新しいメッセージ
+          </button>
+        </div>
+      )}
+
       <MessageInput onSend={handleSend} />
     </div>
   );
