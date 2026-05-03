@@ -5,9 +5,10 @@ import { supabase } from "@/lib/supabase";
 
 type MessageInputProps = {
   onSend: (content: string, imageUrl: string | null) => void;
+  placeholder?: string;
 };
 
-export default function MessageInput({ onSend }: MessageInputProps) {
+export default function MessageInput({ onSend, placeholder }: MessageInputProps) {
   const [text, setText] = useState("");
   const [uploading, setUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -129,7 +130,7 @@ export default function MessageInput({ onSend }: MessageInputProps) {
             value={text}
             onChange={(e) => setText(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="クラスへ共有..."
+            placeholder={placeholder || "メッセージを入力..."}
             rows={1}
             disabled={uploading}
             className="flex-1 resize-none bg-transparent px-1 py-2 focus:outline-none text-sm placeholder:text-gray-400 max-h-32"

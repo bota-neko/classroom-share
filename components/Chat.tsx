@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { fetchProfiles } from "@/lib/profiles";
 import MessageItem from "./MessageItem";
 import MessageInput from "./MessageInput";
+import Avatar from "./Avatar";
 
 type Message = {
   id: string;
@@ -12,7 +13,14 @@ type Message = {
   user_id: string;
   content: string;
   image_url: string | null;
+  receiver_id: string | null;
   created_at: string;
+};
+
+type Member = {
+  user_id: string;
+  name: string;
+  role: string;
 };
 
 type LikeState = { count: number; liked: boolean };
@@ -32,6 +40,8 @@ export default function Chat({
 }: ChatProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [profiles, setProfiles] = useState<Map<string, string>>(new Map());
+  const [members, setMembers] = useState<Member[]>([]);
+  const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
   const [likes, setLikes] = useState<Map<string, LikeState>>(new Map());
   const [loading, setLoading] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -54,11 +64,22 @@ export default function Chat({
 
   useEffect(() => {
     const fetchMessages = async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("messages")
         .select("*")
-        .eq("class_id", classId)
-        .order("created_at", { ascending: true });
+        .eq("class_id", classId);
+
+      if (selectedMemberId) {
+        // 個別メッセージ: (自分->相手) OR (相手->自分)
+        query = query.or(
+          `and(user_id.eq.${currentUserId},receiver_id.eq.${selectedMemberId}),and(user_id.eq.${selectedMemberId},receiver_id.eq.${currentUserId})`
+        );
+      } else {
+        // 全員向けメッセージ
+        query = query.is("receiver_id", null);
+      }
+
+      const { data, error } = await query.order("created_at", { ascending: true });
 
       if (error) {
         setLoading(false);
@@ -94,7 +115,27 @@ export default function Chat({
       setLoading(false);
     };
 
+    const fetchMembersList = async () => {
+      const { data } = await supabase
+        .from("memberships")
+        .select("user_id, role")
+        .eq("class_id", classId)
+        .eq("status", "approved");
+
+      if (data) {
+        const uids = data.map((m) => m.user_id);
+        const pMap = await fetchProfiles(uids);
+        const memberList = data.map((m) => ({
+          user_id: m.user_id,
+          name: pMap.get(m.user_id) || "ユーザー",
+          role: m.role,
+        }));
+        setMembers(memberList.filter((m) => m.user_id !== currentUserId));
+      }
+    };
+
     fetchMessages();
+    fetchMembersList();
 
     const channel = supabase
       .channel(`messages-${classId}`)
@@ -105,11 +146,19 @@ export default function Chat({
         filter: `class_id=eq.${classId}`,
       }, async (payload) => {
         const newMsg = payload.new as Message;
-        setMessages((prev) => {
-          if (prev.some((m) => m.id === newMsg.id)) return prev;
-          return [...prev, newMsg];
-        });
-        if (!isAtBottom.current) setUnreadCount((n) => n + 1);
+        // フィルタリング: 現在の表示モード（全員 or 特定個人）に一致する場合のみ追加
+        const isMatch = selectedMemberId 
+          ? (newMsg.receiver_id === selectedMemberId && newMsg.user_id === currentUserId) || 
+            (newMsg.receiver_id === currentUserId && newMsg.user_id === selectedMemberId)
+          : newMsg.receiver_id === null;
+
+        if (isMatch) {
+          setMessages((prev) => {
+            if (prev.some((m) => m.id === newMsg.id)) return prev;
+            return [...prev, newMsg];
+          });
+          if (!isAtBottom.current) setUnreadCount((n) => n + 1);
+        }
         setProfiles((prev) => {
           if (prev.has(newMsg.user_id)) return prev;
           fetchProfiles([newMsg.user_id]).then((np) => {
@@ -167,7 +216,7 @@ export default function Chat({
       supabase.removeChannel(channel);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [classId]);
+  }, [classId, selectedMemberId]);
 
   useEffect(() => {
     if (loading) return;
@@ -185,6 +234,7 @@ export default function Chat({
       user_id: currentUserId,
       content,
       image_url: imageUrl,
+      receiver_id: selectedMemberId,
     });
     if (error) { alert("送信に失敗しました: " + error.message); return; }
 
@@ -249,55 +299,118 @@ export default function Chat({
   };
 
   return (
-    <div className="flex flex-col h-full bg-white">
-      <div
-        ref={scrollContainerRef}
-        onScroll={handleScroll}
-        className="flex-1 overflow-y-auto"
-      >
-        <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6">
-          {loading ? (
-            <div className="flex items-center justify-center py-20">
-              <div className="w-6 h-6 border-2 border-gray-200 border-t-black rounded-full animate-spin" />
+    <div className="h-full bg-gray-50/50">
+      <div className="max-w-6xl mx-auto h-full flex bg-white border-x border-gray-200 overflow-hidden relative">
+        {/* サイドバー */}
+        <div className="w-64 border-r border-gray-100 flex flex-col bg-gray-50/30 hidden sm:flex shrink-0">
+          <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-white/50">
+            <span className="text-sm font-bold text-black">メンバー</span>
+            <span className="text-[10px] text-gray-400 font-medium bg-gray-100 px-1.5 py-0.5 rounded uppercase">
+              Class
+            </span>
+          </div>
+          <div className="flex-1 overflow-y-auto">
+            <button
+              onClick={() => setSelectedMemberId(null)}
+              className={`w-full flex items-center gap-3 px-4 py-3 text-sm transition-colors border-b border-gray-50 ${
+                selectedMemberId === null
+                  ? "bg-black text-white"
+                  : "text-gray-600 hover:bg-gray-100"
+              }`}
+            >
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs ${selectedMemberId === null ? "bg-white/20" : "bg-gray-200"}`}>
+                👥
+              </div>
+              <div className="flex-1 text-left">
+                <div className="font-medium">全員</div>
+              </div>
+            </button>
+
+            {members.map((m) => (
+              <button
+                key={m.user_id}
+                onClick={() => setSelectedMemberId(m.user_id)}
+                className={`w-full flex items-center gap-3 px-4 py-3 text-sm transition-colors border-b border-gray-50 ${
+                  selectedMemberId === m.user_id
+                    ? "bg-black text-white"
+                    : "text-gray-600 hover:bg-gray-100"
+                }`}
+              >
+                <Avatar userId={m.user_id} name={m.name} size="sm" />
+                <div className="flex-1 text-left min-w-0">
+                  <div className="font-medium truncate">{m.name}</div>
+                  <div className={`text-[10px] uppercase ${selectedMemberId === m.user_id ? "text-gray-300" : "text-gray-400"}`}>
+                    {m.role === "admin" ? "管理者" : "生徒"}
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* メインチャット */}
+        <div className="flex-1 flex flex-col min-w-0 relative bg-white">
+          <div className="absolute top-0 left-0 right-0 h-10 bg-white/80 backdrop-blur-sm border-b border-gray-100 z-10 flex items-center px-4 sm:hidden">
+             <span className="text-xs font-bold text-black">
+               {selectedMemberId ? `DM: ${members.find(m => m.user_id === selectedMemberId)?.name}` : "全員"}
+             </span>
+          </div>
+
+          <div
+            ref={scrollContainerRef}
+            onScroll={handleScroll}
+            className="flex-1 overflow-y-auto pt-10 sm:pt-0"
+          >
+            <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6">
+              {loading ? (
+                <div className="flex items-center justify-center py-20">
+                  <div className="w-6 h-6 border-2 border-gray-200 border-t-black rounded-full animate-spin" />
+                </div>
+              ) : messages.length === 0 ? (
+                <div className="text-center py-20">
+                  <p className="text-gray-500 text-sm">最初のメッセージを送ってみよう</p>
+                </div>
+              ) : (
+                messages.map((msg) => (
+                  <MessageItem
+                    key={msg.id}
+                    message={msg}
+                    currentUserId={currentUserId}
+                    displayName={profiles.get(msg.user_id) || "ユーザー"}
+                    onDelete={handleDelete}
+                    onLike={handleLike}
+                    likeCount={likes.get(msg.id)?.count ?? 0}
+                    liked={likes.get(msg.id)?.liked ?? false}
+                    bubbleColor={bubbleColor}
+                  />
+                ))
+              )}
+              <div ref={bottomRef} />
             </div>
-          ) : messages.length === 0 ? (
-            <div className="text-center py-20">
-              <p className="text-gray-500 text-sm">最初のメッセージを送ってみよう</p>
+          </div>
+
+          {unreadCount > 0 && (
+            <div className="relative">
+              <button
+                onClick={() => { isAtBottom.current = true; setUnreadCount(0); scrollToBottom(true); }}
+                className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-4 py-2 bg-black text-white text-xs font-medium rounded-full shadow-lg hover:bg-gray-800 transition-colors"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-3.5 h-3.5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+                </svg>
+                {unreadCount}件の新しいメッセージ
+              </button>
             </div>
-          ) : (
-            messages.map((msg) => (
-              <MessageItem
-                key={msg.id}
-                message={msg}
-                currentUserId={currentUserId}
-                displayName={profiles.get(msg.user_id) || "ユーザー"}
-                onDelete={handleDelete}
-                onLike={handleLike}
-                likeCount={likes.get(msg.id)?.count ?? 0}
-                liked={likes.get(msg.id)?.liked ?? false}
-                bubbleColor={bubbleColor}
-              />
-            ))
           )}
-          <div ref={bottomRef} />
+
+          <div className="px-4 pb-4">
+            <MessageInput 
+              onSend={handleSend} 
+              placeholder={selectedMemberId ? `${members.find(m => m.user_id === selectedMemberId)?.name}さんへ個別メッセージ...` : "クラス全員へ送信..."}
+            />
+          </div>
         </div>
       </div>
-
-      {unreadCount > 0 && (
-        <div className="relative">
-          <button
-            onClick={() => { isAtBottom.current = true; setUnreadCount(0); scrollToBottom(true); }}
-            className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-4 py-2 bg-black text-white text-xs font-medium rounded-full shadow-lg hover:bg-gray-800 transition-colors"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-3.5 h-3.5">
-              <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
-            </svg>
-            {unreadCount}件の新しいメッセージ
-          </button>
-        </div>
-      )}
-
-      <MessageInput onSend={handleSend} />
     </div>
   );
 }
