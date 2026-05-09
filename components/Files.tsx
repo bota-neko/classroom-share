@@ -115,6 +115,8 @@ export default function Files({
     "application/vnd.ms-powerpoint",
     "application/vnd.openxmlformats-officedocument.presentationml.presentation",
     "text/plain",
+    "application/zip",
+    "application/x-zip-compressed",
   ];
 
   const handleUpload = async () => {
