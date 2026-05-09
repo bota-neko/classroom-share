@@ -372,23 +372,49 @@ export default function Chat({
 
         {/* メインチャット */}
         <div className="flex-1 flex flex-col min-w-0 relative bg-white">
-          <div className="absolute top-0 left-0 right-0 h-10 bg-white/80 backdrop-blur-sm border-b border-gray-100 z-10 flex items-center px-4 sm:hidden justify-between">
-            <span className="text-xs font-bold text-black">
-              {selectedMemberId ? `DM: ${members.find(m => m.user_id === selectedMemberId)?.name}` : "全員"}
-            </span>
-            <button 
-              onClick={() => setShowSidebarMobile(true)}
-              style={{ backgroundColor: bubbleColor }}
-              className="text-[10px] text-black px-2.5 py-1 rounded-full font-bold shadow-sm border border-black/5"
-            >
-              メンバー切替
-            </button>
-          </div>
+
+          {/* 送信先バナー（常時表示） */}
+          {selectedMemberId ? (
+            <div className="shrink-0 flex items-center justify-between gap-2 px-4 py-2.5 bg-orange-50 border-b-2 border-orange-300">
+              <div className="flex items-center gap-2">
+                <span className="text-lg">🔒</span>
+                <div>
+                  <p className="text-xs text-orange-600 font-bold uppercase tracking-wide">ダイレクトメッセージ</p>
+                  <p className="text-sm font-bold text-orange-800">
+                    {members.find(m => m.user_id === selectedMemberId)?.name ?? ""}さんにだけ送信されます
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowSidebarMobile(true)}
+                className="sm:hidden text-[10px] text-orange-700 bg-orange-100 border border-orange-300 px-2.5 py-1 rounded-full font-bold"
+              >
+                切替
+              </button>
+            </div>
+          ) : (
+            <div className="shrink-0 flex items-center justify-between gap-2 px-4 py-2.5 border-b border-gray-100" style={{ backgroundColor: bubbleColor + "55" }}>
+              <div className="flex items-center gap-2">
+                <span className="text-lg">📢</span>
+                <div>
+                  <p className="text-xs text-gray-500 font-bold uppercase tracking-wide">グループチャット</p>
+                  <p className="text-sm font-bold text-gray-800">クラス全員へ送信されます</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowSidebarMobile(true)}
+                className="sm:hidden text-[10px] text-black px-2.5 py-1 rounded-full font-bold shadow-sm border border-black/10"
+                style={{ backgroundColor: bubbleColor }}
+              >
+                切替
+              </button>
+            </div>
+          )}
 
           <div
             ref={scrollContainerRef}
             onScroll={handleScroll}
-            className="flex-1 overflow-y-auto pt-10 sm:pt-0"
+            className="flex-1 overflow-y-auto"
           >
             <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6">
               {loading ? (
@@ -432,10 +458,10 @@ export default function Chat({
             </div>
           )}
 
-          <div className="px-4 pb-4">
+          <div className={selectedMemberId ? "border-t-2 border-orange-300 bg-orange-50" : ""}>
             <MessageInput
               onSend={handleSend}
-              placeholder={selectedMemberId ? `${members.find(m => m.user_id === selectedMemberId)?.name}さんへ個別メッセージ...` : "クラス全員へ送信..."}
+              placeholder={selectedMemberId ? `🔒 ${members.find(m => m.user_id === selectedMemberId)?.name}さんへ個別送信...` : "📢 クラス全員へ送信..."}
             />
           </div>
         </div>
