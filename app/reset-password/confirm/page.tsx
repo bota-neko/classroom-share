@@ -2,27 +2,32 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 
-export default function LoginPage() {
+export default function ResetPasswordConfirmPage() {
   const router = useRouter();
-  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    setLoading(false);
-    if (error) {
-      alert("ログインに失敗しました: " + error.message);
+    if (password !== confirm) {
+      alert("パスワードが一致しません");
       return;
     }
+    if (password.length < 6) {
+      alert("パスワードは6文字以上にしてください");
+      return;
+    }
+    setLoading(true);
+    const { error } = await supabase.auth.updateUser({ password });
+    setLoading(false);
+    if (error) {
+      alert("更新に失敗しました: " + error.message);
+      return;
+    }
+    alert("パスワードを変更しました");
     router.push("/dashboard");
   };
 
@@ -35,35 +40,37 @@ export default function LoginPage() {
           </span>
         </div>
         <h1 className="text-2xl font-semibold text-center mb-1 text-black">
-          ログイン
+          新しいパスワード設定
         </h1>
         <p className="text-sm text-gray-500 text-center mb-8">
-          Classroomへようこそ
+          新しいパスワードを入力してください
         </p>
-        <form onSubmit={handleLogin} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-xs font-medium text-gray-700 mb-1.5">
-              メールアドレス
-            </label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-black"
-              placeholder="example@mail.com"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1.5">
-              パスワード
+              新しいパスワード
             </label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
+              minLength={6}
               className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-black"
+              placeholder="6文字以上"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1.5">
+              パスワード確認
+            </label>
+            <input
+              type="password"
+              value={confirm}
+              onChange={(e) => setConfirm(e.target.value)}
+              required
+              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-black"
+              placeholder="もう一度入力"
             />
           </div>
           <button
@@ -71,20 +78,9 @@ export default function LoginPage() {
             disabled={loading}
             className="w-full py-2.5 bg-black text-white rounded-lg hover:bg-gray-800 disabled:bg-gray-400 font-medium text-sm"
           >
-            {loading ? "ログイン中..." : "ログイン"}
+            {loading ? "変更中..." : "パスワードを変更する"}
           </button>
         </form>
-        <p className="text-sm text-center mt-4">
-          <Link href="/reset-password" className="text-gray-400 hover:text-black hover:underline text-xs">
-            パスワードを忘れた方
-          </Link>
-        </p>
-        <p className="text-sm text-center mt-3 text-gray-500">
-          アカウント未作成の方は{" "}
-          <Link href="/signup" className="text-black font-medium hover:underline">
-            新規登録
-          </Link>
-        </p>
       </div>
     </div>
   );
