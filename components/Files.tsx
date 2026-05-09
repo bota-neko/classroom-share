@@ -236,9 +236,18 @@ export default function Files({
 
         {showForm && (
           <div className="mb-8 bg-gray-50 border border-gray-200 rounded-xl p-6">
-            <p className="text-sm text-gray-600 mb-4">
+            <p className="text-sm text-gray-600 mb-3">
               クラスの全員と共有するファイルをアップロードします
             </p>
+            <div className="mb-4 p-3 bg-white border border-gray-200 rounded-lg text-xs text-gray-500">
+              <p className="font-medium text-gray-700 mb-1">📎 アップロードできるファイル形式</p>
+              <p>画像：jpg / png / gif / webp</p>
+              <p>文書：pdf / txt / doc / docx</p>
+              <p>表計算：xls / xlsx</p>
+              <p>スライド：ppt / pptx</p>
+              <p>圧縮：zip</p>
+              <p className="mt-1.5 text-gray-400">※ 1ファイルあたり最大50MBまで</p>
+            </div>
             <input
               ref={fileInputRef}
               type="file"
