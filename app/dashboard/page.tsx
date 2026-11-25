@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase";
-import { generateJoinCode, getClassTheme } from "@/lib/profiles";
+import { supabase, supabaseSchema } from "@/lib/supabase";
+import { ensureProfile, generateJoinCode, getClassTheme } from "@/lib/profiles";
+import { sendClassroomNotifications } from "@/lib/notifications";
 import Avatar from "@/components/Avatar";
 import NotificationBell from "@/components/NotificationBell";
 
@@ -14,6 +15,8 @@ type ClassInfo = {
   status: string;
   join_code: string | null;
 };
+
+type JoinClassResult = { id: string; name: string; created_by: string };
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -30,6 +33,17 @@ export default function DashboardPage() {
   const [editName, setEditName] = useState("");
 
   const fetchClasses = async (uid: string) => {
+    if (supabaseSchema !== "public") {
+      // 参加申請中のユーザーへクラスの非公開項目を返さない。
+      const { data, error } = await supabase.rpc("my_class_summaries");
+      if (error) {
+        setClasses([]);
+        return;
+      }
+      setClasses((data ?? []) as ClassInfo[]);
+      return;
+    }
+
     const { data: memberships } = await supabase
       .from("memberships")
       .select("class_id, role, status")
@@ -71,13 +85,11 @@ export default function DashboardPage() {
       const uid = sessionData.session.user.id;
       setUserId(uid);
 
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("display_name")
-        .eq("id", uid)
-        .single();
-
-      setDisplayName(profile?.display_name || "ユーザー");
+      try {
+        setDisplayName(await ensureProfile(sessionData.session.user));
+      } catch {
+        setDisplayName("ユーザー");
+      }
       await fetchClasses(uid);
       setLoading(false);
 
@@ -89,7 +101,7 @@ export default function DashboardPage() {
           "postgres_changes",
           {
             event: "*",
-            schema: "public",
+            schema: supabaseSchema,
             table: "memberships",
             filter: `user_id=eq.${uid}`,
           },
@@ -135,11 +147,11 @@ export default function DashboardPage() {
   const handleJoinClass = async () => {
     const code = joinCode.trim().toUpperCase();
     if (!code) return;
-    const { data: cls, error } = await supabase
-      .from("classes")
-      .select("id, name, created_by")
-      .eq("join_code", code)
-      .single();
+    // 統合先では参加コードだけで対象クラスを返す RPC を利用する。
+    const { data, error } = supabaseSchema === "public"
+      ? await supabase.from("classes").select("id, name, created_by").eq("join_code", code).single()
+      : await supabase.rpc("find_class_by_join_code", { p_code: code }).maybeSingle();
+    const cls = data as JoinClassResult | null;
 
     if (error || !cls) {
       alert("無効な参加コードです");
@@ -172,12 +184,16 @@ export default function DashboardPage() {
     }
 
     // 参加通知を管理者に送る
-    await supabase.from("notifications").insert({
-      user_id: cls.created_by,
-      type: "join_request",
-      content: `${displayName || "新メンバー"}が「${cls.name}」への参加をリクエストしました`,
-      link: `/class/${cls.id}?tab=invite`,
-    });
+    try {
+      await sendClassroomNotifications(cls.id, [{
+        user_id: cls.created_by,
+        type: "join_request",
+        content: `${displayName || "新メンバー"}が「${cls.name}」への参加をリクエストしました`,
+        link: `/class/${cls.id}?tab=invite`,
+      }]);
+    } catch {
+      alert("参加申請は完了しましたが、管理者への通知に失敗しました");
+    }
 
     setJoinCode("");
     setShowJoin(false);

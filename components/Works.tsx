@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { supabase } from "@/lib/supabase";
+import { supabase, supabaseSchema, supabaseStorageBucket } from "@/lib/supabase";
 import { fetchProfiles } from "@/lib/profiles";
+import { sendClassroomNotifications } from "@/lib/notifications";
 import Avatar from "./Avatar";
 
 type Work = {
@@ -68,7 +69,7 @@ export default function Works({
         "postgres_changes",
         {
           event: "INSERT",
-          schema: "public",
+          schema: supabaseSchema,
           table: "works",
           filter: `class_id=eq.${classId}`,
         },
@@ -97,7 +98,7 @@ export default function Works({
         "postgres_changes",
         {
           event: "UPDATE",
-          schema: "public",
+          schema: supabaseSchema,
           table: "works",
           filter: `class_id=eq.${classId}`,
         },
@@ -112,7 +113,7 @@ export default function Works({
         "postgres_changes",
         {
           event: "DELETE",
-          schema: "public",
+          schema: supabaseSchema,
           table: "works",
           filter: `class_id=eq.${classId}`,
         },
@@ -157,11 +158,12 @@ export default function Works({
         return;
       }
       const ext = file.name.split(".").pop();
-      const fileName = `works/${Date.now()}-${Math.random()
+      const folder = supabaseSchema === "public" ? "works" : `works/${classId}/${currentUserId}`;
+      const fileName = `${folder}/${Date.now()}-${Math.random()
         .toString(36)
         .slice(2)}.${ext}`;
       const { error: uploadError } = await supabase.storage
-        .from("uploads")
+        .from(supabaseStorageBucket)
         .upload(fileName, file);
 
       if (uploadError) {
@@ -169,7 +171,7 @@ export default function Works({
         setUploading(false);
         return;
       }
-      const { data } = supabase.storage.from("uploads").getPublicUrl(fileName);
+      const { data } = supabase.storage.from(supabaseStorageBucket).getPublicUrl(fileName);
       imageUrl = data.publicUrl;
     }
 
@@ -206,7 +208,11 @@ export default function Works({
         content: `${currentDisplayName}さんが新しい作品「${title.trim()}」を投稿しました`,
         link: `/class/${classId}?tab=works`,
       }));
-      await supabase.from("notifications").insert(notifications);
+      try {
+        await sendClassroomNotifications(classId, notifications);
+      } catch {
+        alert("作品は投稿されましたが、通知の送信に失敗しました");
+      }
     }
   };
 

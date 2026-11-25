@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { supabase } from "@/lib/supabase";
+import { supabase, supabaseSchema, supabaseStorageBucket } from "@/lib/supabase";
 import { fetchProfiles } from "@/lib/profiles";
+import { sendClassroomNotifications } from "@/lib/notifications";
 import Avatar from "./Avatar";
 
 type SharedFile = {
@@ -65,7 +66,7 @@ export default function Files({
         "postgres_changes",
         {
           event: "INSERT",
-          schema: "public",
+          schema: supabaseSchema,
           table: "shared_files",
           filter: `class_id=eq.${classId}`,
         },
@@ -89,7 +90,7 @@ export default function Files({
         "postgres_changes",
         {
           event: "DELETE",
-          schema: "public",
+          schema: supabaseSchema,
           table: "shared_files",
           filter: `class_id=eq.${classId}`,
         },
@@ -134,12 +135,13 @@ export default function Files({
 
     setUploading(true);
     const ext = file.name.split(".").pop();
-    const fileName = `files/${Date.now()}-${Math.random()
+    const folder = supabaseSchema === "public" ? "files" : `files/${classId}/${currentUserId}`;
+    const fileName = `${folder}/${Date.now()}-${Math.random()
       .toString(36)
       .slice(2)}.${ext}`;
 
     const { error: uploadError } = await supabase.storage
-      .from("uploads")
+      .from(supabaseStorageBucket)
       .upload(fileName, file);
 
     if (uploadError) {
@@ -148,7 +150,7 @@ export default function Files({
       return;
     }
 
-    const { data: urlData } = supabase.storage.from("uploads").getPublicUrl(fileName);
+    const { data: urlData } = supabase.storage.from(supabaseStorageBucket).getPublicUrl(fileName);
 
     const { error } = await supabase.from("shared_files").insert({
       class_id: classId,
@@ -183,7 +185,11 @@ export default function Files({
         content: `${currentDisplayName}さんが新しい資料「${file.name}」を共有しました`,
         link: `/class/${classId}?tab=files`,
       }));
-      await supabase.from("notifications").insert(notifications);
+      try {
+        await sendClassroomNotifications(classId, notifications);
+      } catch {
+        alert("ファイルは共有されましたが、通知の送信に失敗しました");
+      }
     }
   };
 

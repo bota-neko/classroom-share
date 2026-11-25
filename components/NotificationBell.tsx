@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase";
+import { supabase, supabaseSchema } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 
 type Notification = {
@@ -40,7 +40,7 @@ export default function NotificationBell({ userId }: { userId: string }) {
         "postgres_changes",
         {
           event: "INSERT",
-          schema: "public",
+          schema: supabaseSchema,
           table: "notifications",
           filter: `user_id=eq.${userId}`,
         },

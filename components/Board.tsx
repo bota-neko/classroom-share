@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { supabase } from "@/lib/supabase";
+import { supabase, supabaseSchema } from "@/lib/supabase";
 import { fetchProfiles } from "@/lib/profiles";
 import Avatar from "./Avatar";
 
@@ -97,7 +97,7 @@ export default function Board({ classId, currentUserId, currentDisplayName, isAd
       .channel(`board-replies-${selectedPost.id}`)
       .on("postgres_changes", {
         event: "INSERT",
-        schema: "public",
+        schema: supabaseSchema,
         table: "board_replies",
         filter: `post_id=eq.${selectedPost.id}`,
       }, async (payload) => {
@@ -125,7 +125,7 @@ export default function Board({ classId, currentUserId, currentDisplayName, isAd
       })
       .on("postgres_changes", {
         event: "DELETE",
-        schema: "public",
+        schema: supabaseSchema,
         table: "board_replies",
         filter: `post_id=eq.${selectedPost.id}`,
       }, (payload) => {

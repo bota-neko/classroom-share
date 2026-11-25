@@ -1,4 +1,27 @@
 import { supabase } from "./supabase";
+import type { User } from "@supabase/supabase-js";
+
+// メール確認後の初回ログイン時にもプロフィールを補完する。
+export async function ensureProfile(user: User): Promise<string> {
+  const { data: existing, error: readError } = await supabase
+    .from("profiles")
+    .select("display_name")
+    .eq("id", user.id)
+    .maybeSingle();
+  if (readError) throw readError;
+  if (existing?.display_name) return existing.display_name;
+
+  const metadataName = user.user_metadata?.display_name;
+  const displayName =
+    typeof metadataName === "string" && metadataName.trim()
+      ? metadataName.trim()
+      : user.email?.split("@")[0] || "ユーザー";
+  const { error: writeError } = await supabase
+    .from("profiles")
+    .upsert({ id: user.id, display_name: displayName }, { onConflict: "id", ignoreDuplicates: true });
+  if (writeError) throw writeError;
+  return displayName;
+}
 
 // 複数のuser_idからdisplay_nameを取得
 export async function fetchProfiles(userIds: string[]) {

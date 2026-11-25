@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase";
+import { supabase, supabaseSchema } from "@/lib/supabase";
+import { sendClassroomNotifications } from "@/lib/notifications";
 import { generateJoinCode, fetchProfiles } from "@/lib/profiles";
 import Avatar from "./Avatar";
 import { useEffect } from "react";
@@ -67,7 +68,7 @@ export default function InvitePanel({
         "postgres_changes",
         {
           event: "*", // INSERT, UPDATE, DELETE すべて
-          schema: "public",
+          schema: supabaseSchema,
           table: "memberships",
           filter: `class_id=eq.${classId}`,
         },
@@ -187,12 +188,16 @@ export default function InvitePanel({
     }
 
     // 生徒に通知を送る
-    await supabase.from("notifications").insert({
-      user_id: target.user_id,
-      type: "approved",
-      content: `「${className}」への参加が承認されました！`,
-      link: `/class/${classId}`,
-    });
+    try {
+      await sendClassroomNotifications(classId, [{
+        user_id: target.user_id,
+        type: "approved",
+        content: `「${className}」への参加が承認されました！`,
+        link: `/class/${classId}`,
+      }]);
+    } catch {
+      alert("参加は承認されましたが、本人への通知に失敗しました");
+    }
 
     await fetchMembers();
   };

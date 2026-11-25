@@ -36,6 +36,10 @@ yarn-error.log*
 # vercel
 .vercel
 
+# local migration state
+supabase/.temp/
+__pycache__/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

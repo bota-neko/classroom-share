@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { supabase } from "@/lib/supabase";
+import { supabase, supabaseSchema } from "@/lib/supabase";
 import { fetchProfiles } from "@/lib/profiles";
+import { sendClassroomNotifications } from "@/lib/notifications";
 import MessageItem from "./MessageItem";
 import MessageInput from "./MessageInput";
 import Avatar from "./Avatar";
@@ -142,7 +143,7 @@ export default function Chat({
       .channel(`messages-${classId}`)
       .on("postgres_changes", {
         event: "INSERT",
-        schema: "public",
+        schema: supabaseSchema,
         table: "messages",
         filter: `class_id=eq.${classId}`,
       }, async (payload) => {
@@ -174,7 +175,7 @@ export default function Chat({
       })
       .on("postgres_changes", {
         event: "DELETE",
-        schema: "public",
+        schema: supabaseSchema,
         table: "messages",
         filter: `class_id=eq.${classId}`,
       }, (payload) => {
@@ -182,7 +183,7 @@ export default function Chat({
       })
       .on("postgres_changes", {
         event: "INSERT",
-        schema: "public",
+        schema: supabaseSchema,
         table: "message_likes",
         filter: `class_id=eq.${classId}`,
       }, (payload) => {
@@ -197,7 +198,7 @@ export default function Chat({
       })
       .on("postgres_changes", {
         event: "DELETE",
-        schema: "public",
+        schema: supabaseSchema,
         table: "message_likes",
         filter: `class_id=eq.${classId}`,
       }, (payload) => {
@@ -249,14 +250,18 @@ export default function Chat({
       .neq("user_id", currentUserId);
 
     if (members && members.length > 0) {
-      await supabase.from("notifications").insert(
-        members.map((m) => ({
-          user_id: m.user_id,
-          type: "chat",
-          content: `${currentDisplayName}さんが「${content.substring(0, 20)}${content.length > 20 ? "..." : ""}」と発言しました`,
-          link: `/class/${classId}?tab=chat`,
-        }))
-      );
+      try {
+        await sendClassroomNotifications(classId,
+          members.map((m) => ({
+            user_id: m.user_id,
+            type: "chat",
+            content: `${currentDisplayName}さんが「${content.substring(0, 20)}${content.length > 20 ? "..." : ""}」と発言しました`,
+            link: `/class/${classId}?tab=chat`,
+          }))
+        );
+      } catch {
+        alert("メッセージは送信されましたが、通知の送信に失敗しました");
+      }
     }
   };
 
@@ -461,6 +466,8 @@ export default function Chat({
           <div className={selectedMemberId ? "border-t-2 border-orange-300 bg-orange-50" : ""}>
             <MessageInput
               onSend={handleSend}
+              classId={classId}
+              currentUserId={currentUserId}
               placeholder={selectedMemberId ? `🔒 ${members.find(m => m.user_id === selectedMemberId)?.name}さんへ個別送信...` : "📢 クラス全員へ送信..."}
             />
           </div>

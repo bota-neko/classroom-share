@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
+import { ensureProfile } from "@/lib/profiles";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -19,6 +20,7 @@ export default function SignupPage() {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
+      options: { data: { display_name: displayName.trim() } },
     });
 
     if (error || !data.user) {
@@ -28,11 +30,11 @@ export default function SignupPage() {
     }
 
     if (data.session) {
-      const { error: profileError } = await supabase.from("profiles").insert({
-        id: data.user.id,
-        display_name: displayName,
-      });
-      if (profileError) console.log("プロフィール作成エラー:", profileError);
+      try {
+        await ensureProfile(data.user);
+      } catch {
+        alert("プロフィールの保存に失敗しました。ログイン後に再試行します。");
+      }
       router.push("/dashboard");
     } else {
       alert("登録完了！メールで確認してログインしてください");

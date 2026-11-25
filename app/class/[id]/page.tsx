@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase";
+import { supabase, supabaseSchema } from "@/lib/supabase";
 import { getClassTheme } from "@/lib/profiles";
 import Chat from "@/components/Chat";
 import Works from "@/components/Works";
@@ -61,6 +61,20 @@ export default function ClassPage() {
       setRole(membership.role);
       setStatus(membership.status);
 
+      if (membership.status === "pending" && supabaseSchema !== "public") {
+        const { data: summaries } = await supabase.rpc("my_class_summaries");
+        const summary = (summaries as { id: string; name: string; join_code: string | null }[] | null)
+          ?.find((item) => item.id === classId);
+        if (!summary) {
+          router.replace("/dashboard");
+          return;
+        }
+        setClassName(summary.name);
+        setJoinCode(summary.join_code);
+        setLoading(false);
+        return;
+      }
+
       const { data: classData, error } = await supabase
         .from("classes")
         .select("name, join_code, meeting_url")
@@ -86,7 +100,7 @@ export default function ClassPage() {
         "postgres_changes",
         {
           event: "UPDATE",
-          schema: "public",
+          schema: supabaseSchema,
           table: "memberships",
           filter: `user_id=eq.${userId}`,
         },
@@ -100,7 +114,7 @@ export default function ClassPage() {
         "postgres_changes",
         {
           event: "UPDATE",
-          schema: "public",
+          schema: supabaseSchema,
           table: "classes",
           filter: `id=eq.${classId}`,
         },

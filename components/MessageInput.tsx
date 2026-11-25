@@ -1,14 +1,16 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { supabase } from "@/lib/supabase";
+import { supabase, supabaseSchema, supabaseStorageBucket } from "@/lib/supabase";
 
 type MessageInputProps = {
   onSend: (content: string, imageUrl: string | null) => void;
+  classId: string;
+  currentUserId: string;
   placeholder?: string;
 };
 
-export default function MessageInput({ onSend, placeholder }: MessageInputProps) {
+export default function MessageInput({ onSend, classId, currentUserId, placeholder }: MessageInputProps) {
   const [text, setText] = useState("");
   const [uploading, setUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -27,17 +29,18 @@ export default function MessageInput({ onSend, placeholder }: MessageInputProps)
       return null;
     }
     const ext = file.name.split(".").pop();
-    const fileName = `messages/${Date.now()}-${Math.random()
+    const folder = supabaseSchema === "public" ? "messages" : `messages/${classId}/${currentUserId}`;
+    const fileName = `${folder}/${Date.now()}-${Math.random()
       .toString(36)
       .slice(2)}.${ext}`;
     const { error } = await supabase.storage
-      .from("uploads")
+      .from(supabaseStorageBucket)
       .upload(fileName, file);
     if (error) {
       console.log("画像アップロードエラー:", error);
       return null;
     }
-    const { data } = supabase.storage.from("uploads").getPublicUrl(fileName);
+    const { data } = supabase.storage.from(supabaseStorageBucket).getPublicUrl(fileName);
     return data.publicUrl;
   };
 
