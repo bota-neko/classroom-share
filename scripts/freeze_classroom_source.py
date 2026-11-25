@@ -71,15 +71,14 @@ def write_sql(statements, rollback):
 
 
 def expected_after_freeze(current):
-    return [item for item in current if item['table_schema'] != 'public'
-            and not (item['table_schema'] == 'storage' and item['table_name'] == 'objects')]
+    # storage.objects grants are managed by supabase_storage_admin and remain
+    # in place. The restrictive policies block writes to this bucket.
+    return [item for item in current if item['table_schema'] != 'public']
 
 
 def freeze_statements():
     statements = [f'REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON TABLE public.{table} '
                   'FROM anon, authenticated;' for table in TABLES]
-    statements.append('REVOKE INSERT, UPDATE, DELETE ON TABLE storage.objects '
-                      'FROM anon, authenticated;')
     statements.extend([
         "CREATE POLICY classroom_source_freeze_insert ON storage.objects AS RESTRICTIVE "
         "FOR INSERT TO anon, authenticated WITH CHECK (bucket_id <> 'uploads');",
@@ -96,7 +95,7 @@ def restore_statements(saved):
     statements = [f'DROP POLICY {name} ON storage.objects;' for name in FREEZE_POLICIES]
     statements.extend(f"GRANT {item['privilege_type']} ON TABLE "
             f"{item['table_schema']}.{item['table_name']} TO {item['grantee']};"
-            for item in saved)
+            for item in saved if item['table_schema'] == 'public')
     return statements
 
 
@@ -132,7 +131,7 @@ def main():
         if state.get('source_ref') != SOURCE_REF:
             parser.error('Freeze state belongs to a different project')
         saved = state['grants']
-        if before or policies_before != set(FREEZE_POLICIES):
+        if before != expected_after_freeze(saved) or policies_before != set(FREEZE_POLICIES):
             raise RuntimeError('Source write grants changed during freeze; review manually before unfreezing')
         statements = restore_statements(saved)
         write_sql(statements, rollback=not args.apply)
@@ -142,7 +141,8 @@ def main():
             args.state.unlink()
             print('Source write grants restored; SELECT grants unchanged')
         else:
-            print(f'DRY RUN: {len(saved)} write grants would be restored; no persistent changes')
+            public_count = sum(item['table_schema'] == 'public' for item in saved)
+            print(f'DRY RUN: {public_count} public write grants would be restored; no persistent changes')
         return
 
     if args.state.exists():
